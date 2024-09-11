@@ -75,7 +75,7 @@ Surface impedance can be used to describe multiple stacked conductors. This is v
 
 A common misconception among RF engineers designing PCBs is that ENIG (gold-nickel) surface finishes are very lossy. Silver is often praised as the lowest-loss option, which is true, but the story doesn't end there. The thickness of the outermost conductor layer is crucial. This is illustrated through measurements in [4].
 
-The plot below compares ENIG with different gold thicknesses and ENIPIG (an alternative to ENIG). As you'll notice, thicker gold layers lead to a closer effective conductivity to gold's intrinsic conductivity. ENIPIG, using palladium, generally performs better than ENIG with a typical 0.05um thickness.
+The plot below compares ENIG with different gold thicknesses and ENIPIG (an alternative to ENIG). As you'll notice, thicker gold layers lead to a closer effective conductivity to gold's intrinsic conductivity. ENIPIG, using palladium, generally performs better than ENIG with a typical 0.05um thickness. At low frequencies you will notice that the effective conductivity drops to zero. This is because of the high relative permeability of the Nickel layer. You can run the code while setting relative permeability of Nickel to 1 and you will see the difference.
 
 ![Effective Conductivity](./images/effective_sigma_coating.png) | ![Effective Permeability](./images/effective_mur_coating.png)
 :--: | :--:
