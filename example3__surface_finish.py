@@ -17,6 +17,11 @@ import matplotlib.pyplot as plt
 import surfz  # my code for computing surface impedance. Should be in same folder as this script
 
 if __name__ == '__main__':
+    def nickel_model(f, tau, mu_int):
+        # first order relaxed model for Nickel mur
+        # tau = 12e-9  # 12 ns
+        return 1 + (mu_int-1)/(1+2*np.pi*f*tau)
+    
     # constants
     c0 = 299792458   # speed of light in vacuum (m/s)
     mu0 = 4*np.pi*1e-7       # Permeability
@@ -60,7 +65,7 @@ if __name__ == '__main__':
     # Material properties (they could be frequency dependent if desired)
     material_properties_air = [{'sigma': 0,'mur': 1}]                   # air
     material_properties_gold = [{'sigma': 41e6, 'mur': 0.99996}]        # gold
-    material_properties_nickel = [{'sigma': 14.5e6, 'mur': 600}]        # nickel
+    material_properties_nickel = [{'sigma': 14.5e6, 'mur': nickel_model(f, 12e-9, 600)}]        # nickel
     material_properties_palladium = [{'sigma': 9.3e6, 'mur': 1.00082}]  # palladium
     material_properties_copper = [{'sigma': 58e6, 'mur': 0.999991}]     # copper
 
@@ -87,13 +92,17 @@ if __name__ == '__main__':
     Zs_enig_thick_gold  = surfz.surface_impedance(f, material_properties_enig, Rrms=Rrms, boundary_loc=boundary_loc_enig_thick_gold, distribution='rayleigh')
     Zs_enig_thick_gold2 = surfz.surface_impedance(f, material_properties_enig, Rrms=Rrms, boundary_loc=boundary_loc_enig_thick_gold2, distribution='rayleigh')
     Zs_enipig = surfz.surface_impedance(f, material_properties_enipig, Rrms=Rrms, boundary_loc=boundary_loc_enipig, distribution='rayleigh')
-
+    
+    sigma_copper = 58e6
+    Zs_smooth = Zsmooth(f, sigma_copper, 1)  # reference smooth surface impedance based on copper
+    
     # Plot surface impedance (real part)
     plt.figure()
     plt.plot(f*1e-9, Zs_enig.real, lw=2, label='ENIG, Gold=0.05um, Nickel=4um', linestyle='solid')
     plt.plot(f*1e-9, Zs_enig_thick_gold.real, lw=2, label='ENIG, Gold=0.15um, Nickel=4um', linestyle='dashed')
     plt.plot(f*1e-9, Zs_enig_thick_gold2.real, lw=2, label='ENIG, Gold=0.5um, Nickel=4um', linestyle='dashdot')
     plt.plot(f*1e-9, Zs_enipig.real, lw=2, label='ENIPIG, Gold=0.1um, Palladium=0.1um, Nickel=4um', linestyle=(0, (3, 1, 1, 1)))
+    plt.plot(f*1e-9, Zs_smooth.real, lw=2, label='Smooth Copper', linestyle='--')
     plt.title("Surface Impedance Real Part")
     plt.xlabel("Frequency (GHz)")
     plt.ylabel("Surface Impedance (Ohm)")
@@ -107,6 +116,7 @@ if __name__ == '__main__':
     plt.plot(f*1e-9, Zs_enig_thick_gold.imag, lw=2, label='ENIG, Gold=0.15um, Nickel=4um', linestyle='dashed')
     plt.plot(f*1e-9, Zs_enig_thick_gold2.imag, lw=2, label='ENIG, Gold=0.5um, Nickel=4um', linestyle='dashdot')
     plt.plot(f*1e-9, Zs_enipig.imag, lw=2, label='ENIPIG, Gold=0.1um, Palladium=0.1um, Nickel=4um', linestyle=(0, (3, 1, 1, 1)))
+    plt.plot(f*1e-9, Zs_smooth.imag, lw=2, label='Smooth Copper', linestyle='--')
     plt.title("Surface Impedance Imaginary Part")
     plt.xlabel("Frequency (GHz)")
     plt.ylabel("Surface Impedance (Ohm)")
@@ -115,9 +125,6 @@ if __name__ == '__main__':
     plt.legend(loc='upper right')
 
     # Calculate effective conductivity and relative effective permeability
-    sigma_copper = 58e6
-    Zs_smooth = Zsmooth(f, sigma_copper, 1)  # reference smooth surface impedance based on copper
-    
     sigma_eff_enig = sigma_copper*(Zs_smooth.real/Zs_enig.real)**2
     mur_eff_enig = (Zs_enig.imag/Zs_smooth.real)**2
 
