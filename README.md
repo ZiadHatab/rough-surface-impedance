@@ -24,8 +24,13 @@ You need the following libraries: [SciPy](https://scipy.org/), [NumPy](https://n
 I recommend using the transmission line approach, which I implemented in the script [`surfz.py`](https://github.com/ZiadHatab/rough-surface-impedance/blob/main/surfz.py). You only need to have it in the same folder as your main script and load it through import. See included examples for details.
 
 ```Python
+<<<<<<< HEAD
 import numpy as np
 import surfz # Should be in same folder as this script
+=======
+# Should be in same folder as this script
+import surfz 
+>>>>>>> 6326f8df92e18ad9ca329a9d9e9353c6fbca5b8d
 
 # frequency grid
 f = np.logspace(-1, 2, 100)*1e9
