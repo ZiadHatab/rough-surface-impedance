@@ -13,15 +13,9 @@ and Packaging Society, Feb. 29, 2024. doi: https://doi.org/10.4071/001c.94519.
 
 import numpy as np
 import matplotlib.pyplot as plt
-
 import surfz  # my code for computing surface impedance. Should be in same folder as this script
 
 if __name__ == '__main__':
-    def nickel_model(f, tau, mu_int):
-        # first order relaxed model for Nickel mur
-        # tau = 12e-9  # 12 ns
-        return 1 + (mu_int-1)/(1+2*np.pi*f*tau)
-    
     # constants
     c0 = 299792458   # speed of light in vacuum (m/s)
     mu0 = 4*np.pi*1e-7       # Permeability
@@ -60,12 +54,12 @@ if __name__ == '__main__':
     # Nickel: sigma = 14.5e6 S/m; mur = 600
     # Copper: sigma = 58e6 S/m; mur = 0.999991
     
-    f = np.logspace(-1, 2.5, 100)*1e9  # frequency grid... up to roughly 300GHz
+    f = np.logspace(-1, 2.5, 256)*1e9  # frequency grid... up to roughly 300GHz
 
     # Material properties (they could be frequency dependent if desired)
     material_properties_air = [{'sigma': 0,'mur': 1}]                   # air
     material_properties_gold = [{'sigma': 41e6, 'mur': 0.99996}]        # gold
-    material_properties_nickel = [{'sigma': 14.5e6, 'mur': nickel_model(f, 12e-9, 600)}]        # nickel
+    material_properties_nickel = [{'sigma': 14.5e6, 'mur': 20}]        # nickel
     material_properties_palladium = [{'sigma': 9.3e6, 'mur': 1.00082}]  # palladium
     material_properties_copper = [{'sigma': 58e6, 'mur': 0.999991}]     # copper
 
