@@ -33,8 +33,10 @@ f = np.logspace(-1, 2, 100)*1e9
 # definition of the material (can be more complex and frequency-dependent. See examples!)
 material_properties = [{'sigma': 0}, {'sigma': 58e6}]
 Rrms = 1e-6
-Zs_rough = surfz.surface_impedance(f, material_properties Rrms=Rrms, boundary_loc=0, distribution='norm')
+Zs_rough = surfz.surface_impedance(f, material_properties, Rrms=Rrms, boundary_loc=0, distribution='norm')
 ```
+
+Usually, after you have obtained the surface impedance as a function of frequency, you can then afterwards provide this to an EM simulation as a boundary condition, e.g., <https://github.com/ZiadHatab/hfss-2d-transmission-line-simulation>.
 
 ## B-field Intensity and Surface Impedance
 
