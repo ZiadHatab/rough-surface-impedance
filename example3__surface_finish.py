@@ -82,10 +82,10 @@ if __name__ == '__main__':
     boundary_loc_enipig = np.cumsum(thickness_enipig)
 
     # Calculate surface impedance for each case
-    Zs_enig = surfz.surface_impedance(f, material_properties_enig, Rrms=Rrms, boundary_loc=boundary_loc_enig, distribution='rayleigh')
-    Zs_enig_thick_gold  = surfz.surface_impedance(f, material_properties_enig, Rrms=Rrms, boundary_loc=boundary_loc_enig_thick_gold, distribution='rayleigh')
-    Zs_enig_thick_gold2 = surfz.surface_impedance(f, material_properties_enig, Rrms=Rrms, boundary_loc=boundary_loc_enig_thick_gold2, distribution='rayleigh')
-    Zs_enipig = surfz.surface_impedance(f, material_properties_enipig, Rrms=Rrms, boundary_loc=boundary_loc_enipig, distribution='rayleigh')
+    Zs_enig, B_enig, x_enig = surfz.surface_impedance(f, material_properties_enig, Rrms=Rrms, boundary_loc=boundary_loc_enig, distribution='rayleigh', recursion_span=[-1e-6, 5e-6], return_field=True)
+    Zs_enig_thick_gold  = surfz.surface_impedance(f, material_properties_enig, Rrms=Rrms, boundary_loc=boundary_loc_enig_thick_gold, distribution='rayleigh', recursion_span=[-1e-6, 5e-6])
+    Zs_enig_thick_gold2 = surfz.surface_impedance(f, material_properties_enig, Rrms=Rrms, boundary_loc=boundary_loc_enig_thick_gold2, distribution='rayleigh', recursion_span=[-1e-6, 5e-6])
+    Zs_enipig, B_enipig, x_enipig = surfz.surface_impedance(f, material_properties_enipig, Rrms=Rrms, boundary_loc=boundary_loc_enipig, distribution='rayleigh', recursion_span=[-1e-6, 5e-6], return_field=True)
     
     sigma_copper = 58e6
     Zs_smooth = Zsmooth(f, sigma_copper, 1)  # reference smooth surface impedance based on copper
@@ -158,6 +158,48 @@ if __name__ == '__main__':
     plt.xlim([0, 300])
     plt.ylim([1e-1, 1e3])
     plt.legend()
+
+    
+    # plot field penetration depth for enig
+    plt.figure()
+    freq = [1e9, 10e9, 100e9]
+    for ff in freq:
+        idx = np.argmin(abs(f - ff))
+        plt.semilogy(x_enig*1e6, abs(B_enig[idx]), lw=1.5, label=f'{ff*1e-9:.1f} GHz', linestyle='solid')
+        #plt.semilogy(x_enipig*1e6, abs(B_enipig[idx]), lw=2, label=f'ENIPIG, Gold=0.1um, Palladium=0.1um, Nickel=4um {ff*1e-9:.2f}GHz', linestyle=(0, (3, 1, 1, 1)))
+    higlight_area = [[-1, 0], [0, 0.05], [0.05, 4.05], [4.05, 5]]
+    colors_area = np.array([(166, 231, 255), (212,175,55), (181, 182, 181), (184, 115, 51)])/255
+    text_area = ['Air', 'Gold', 'Nickel', 'Copper']
+    for inx, xspan in enumerate(higlight_area):
+        plt.axvspan(*xspan, color=colors_area[inx], alpha=0.4, lw=0)
+        plt.text(np.mean(xspan), 1.02, text_area[inx], ha='center', va='bottom')
+    plt.xlabel('Distance (um)')
+    plt.ylabel('Normalized Magnetic Field')
+    plt.ylim([1e-21, 100])
+    plt.xlim([-1, 5])
+    plt.title('ENIG: Gold=0.05um, Nickel=4um')
+    plt.legend(loc='lower left', ncol=3)
+
+    # plot field penetration depth for enipig
+    plt.figure()
+    freq = [1e9, 10e9, 100e9]
+    for ff in freq:
+        idx = np.argmin(abs(f - ff))
+        plt.semilogy(x_enipig*1e6, abs(B_enipig[idx]), lw=1.5, label=f'{ff*1e-9:.1f} GHz', linestyle='solid')
+    higlight_area = [[-1,0], [0, 0.1], [0.1, 0.2], [0.2, 4.2], [4.2, 5]]
+    colors_area = np.array([(166, 231, 255), (212,175,55), (207,205,201), (181, 182, 181), (184, 115, 51)])/255
+    text_area = ['Air', 'Gold', 'Palladium', 'Nickel', 'Copper']
+    for inx, xspan in enumerate(higlight_area):
+        plt.axvspan(*xspan, color=colors_area[inx], alpha=0.4, lw=0)
+        y = 10 if inx == 2 else 1.1
+        xoffset = 0.2 if inx == 2 else -0.1 if inx == 1 else 0
+        plt.text(np.mean(xspan)+xoffset, y, text_area[inx], ha='center', va='bottom')
+    plt.xlabel('Distance (um)')
+    plt.ylabel('Normalized Magnetic Field')
+    plt.ylim([1e-21, 100])
+    plt.xlim([-1, 5])
+    plt.title('ENIPIG: Gold=0.1um, Palladium=0.1um, Nickel=4um')
+    plt.legend(loc='lower left', ncol=3)
 
     
     plt.show()

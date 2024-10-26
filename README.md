@@ -40,11 +40,9 @@ Usually, after you have obtained the surface impedance as a function of frequenc
 
 ## B-field Intensity and Surface Impedance
 
-Example plots for the B-field based on Gradient model [1], see example_1.
+Example plots comparing the B-field and surface impedance based on Gradient model [1] and transmission line method [2], see example_1.
 
 ![B-field plot](images/B-field_plot.png)
-
-Comparison between the Gradient model [1] and Transmission line method [2] for calculating the surface impedance:
 
 ![Surface Impedance](images/surface_impedance.png)
 
@@ -72,6 +70,11 @@ A common misconception among RF engineers designing PCBs is that ENIG (gold-nick
 The plot below compares ENIG with different gold thicknesses and ENIPIG (an alternative to ENIG). As you'll notice, thicker gold layers lead to a closer effective conductivity to gold's intrinsic conductivity. ENIPIG, using palladium, generally performs better than ENIG with a typical 0.05um gold thickness. At low frequencies, you will notice that the effective conductivity drops (its not zero). This is because of the high relative permeability of the Nickel layer. You can run the code while setting relative permeability of Nickel to 1, and you will see the difference.
 
 ![Effective Conductivity](./images/effective_sigma_coating.png) | ![Effective Permeability](./images/effective_mur_coating.png)
+:--: | :--:
+
+Below is an image of the penetration depth of the magnetic field (normalized) from air to copper through the coating layers for ENIG and ENIPIG. The air and copper layers are assumed to extend to infinity.
+
+![Penetration depth ENIG](./images/penetration_depth_enig.png) | ![Penetration depth ENIPIG](./images/penetration_depth_enipig.png)
 :--: | :--:
 
 ## References

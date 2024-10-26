@@ -50,17 +50,20 @@ if __name__ == '__main__':
     
     # TL model
     material_properties = [{'sigma': 0}, {'sigma': 58e6}]
-    Zs_rough_TL = surfz.surface_impedance(f, material_properties, Rrms=Rrms, boundary_loc=0, distribution='norm')
+    Zs_rough_TL, B_rough_TL, x_TL = surfz.surface_impedance(f, material_properties, Rrms=Rrms, boundary_loc=0, distribution='norm',
+                                                            recursion_span=[-5*Rrms, 10*Rrms], return_field=True)
     
     # Plot normalized magnetic field magnitude
     plt.figure()
     for ff in [1e9, 10e9, 100e9]:
         idx = np.isclose(f, ff).nonzero()[0][0]
-        plt.plot(x*1e6, abs(B_rough[idx]), lw=2, label=f'Rough conductor, {Rrms*1e6:.2f}um, {ff*1e-9:.2f} GHz')
-    
+        plt.plot(x*1e6, abs(B_rough[idx]), lw=2, label=f'Gradient model, {Rrms*1e6:.1f}um, {ff*1e-9:.2f} GHz')
+    for ff in [1e9, 10e9, 100e9]:
+        idx = np.isclose(f, ff).nonzero()[0][0] 
+        plt.plot(x_TL*1e6, abs(B_rough_TL[idx]), '-.', lw=2, label=f'TL model, {Rrms*1e6:.1f}um, {ff*1e-9:.2f} GHz') 
     for ff in [1e9, 10e9, 100e9]:
         idx = np.isclose(f, ff).nonzero()[0][0]
-        plt.plot(x*1e6, abs(B_smooth[idx]), '--', lw=2, label=f'Smooth conductor, {ff*1e-9:.2f} GHz')
+        plt.plot(x*1e6, abs(B_smooth[idx]), '--', lw=2, label=f'Smooth conductor, {ff*1e-9:.1f} GHz')
     plt.legend()
     plt.xlabel('Distance (µm)')
     plt.ylabel('Normalized Magnetic Field')

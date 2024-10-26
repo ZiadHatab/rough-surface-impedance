@@ -71,7 +71,7 @@ def get_CDF(x, Rrms, boundary_loc, distribution='norm'):
     return CDF
 
 def surface_impedance(f, material_properties=None, Rrms=1e-9, boundary_loc=0, distribution='norm',
-                      recursion_span=None, N=2048, return_material_profile=False):
+                      recursion_span=None, N=2048, return_material_profile=False, return_field=False, B_field=True):
     """
     Computes the surface impedance using the transmission line taper approach [1].
     I updated the procedure to support multiconductor [2], where each boundary has its own roughness.
@@ -92,11 +92,16 @@ def surface_impedance(f, material_properties=None, Rrms=1e-9, boundary_loc=0, di
         recursion_span (list of two floats): Range for the recursion (default is [-5*Rrms[0]+boundary_loc[0], 10*Rrms[-1]+boundary_loc[-1]]).
         N (int): Number of points for recursion evaluation (default is 2048).
         distribution (str or list of str): Probability distribution of roughness ('norm', 'rayleigh', 'uniform', etc.).
+        return_material_profile (bool): If True, return also the material profile as function of distance for each frequency.
+        return_field (bool): If True, return also the electric and magnetic field as function of distance for each frequency.
+        B_field (bool): If True, return the magnetic field. Otherwise, return the electric field.
 
     Returns:
         numpy.ndarray: Surface impedance as a function of frequency.
 
         If return_material_profile is True, also returns a list of material profiles as function of distance for each frequency.
+        If return_field is True, also returns the field as function of distance for each frequency.
+        if both return_material_profile and return_field are True, then returns the material profile and the field as function of distance for each frequency.
     """
     # Constants
     mu0 = 4*np.pi*1e-7        # Permeability
@@ -149,7 +154,7 @@ def surface_impedance(f, material_properties=None, Rrms=1e-9, boundary_loc=0, di
         else:
             material['er'] = 1 - 1j*material['sigma']/omega/ep0
     
-    # this define the poins at which the recursion will be performed
+    # this define the points at which the recursion will be performed
     recursion_eval = np.linspace(recursion_span[0], recursion_span[1], N)
     
     # compute the CDF of each boundary
@@ -166,12 +171,15 @@ def surface_impedance(f, material_properties=None, Rrms=1e-9, boundary_loc=0, di
     Zs = []
     mur_list = []
     er_list  = []
+    A = []  # for the fields if enabled
     print('TL method running...')
     for idx, w in enumerate(omega):
         # compute the material property profile as a multimodal from the individual CDFs
         mur = np.array([(material_properties[inx+1]['mur'][idx] - material_properties[inx]['mur'][idx])*cdf for inx,cdf in enumerate(CDF)]).sum(axis=0) + material_properties[0]['mur'][idx]
         er  = np.array([(material_properties[inx+1]['er'][idx] - material_properties[inx]['er'][idx])*cdf for inx,cdf in enumerate(CDF)]).sum(axis=0) + material_properties[0]['er'][idx]
-        
+        mur_list.append(mur)
+        er_list.append(er)
+
         # scale the units
         mu = mu0*mur
         ep = ep0*er
@@ -189,12 +197,61 @@ def surface_impedance(f, material_properties=None, Rrms=1e-9, boundary_loc=0, di
             tanh = np.tanh(g*dl)
             Zsi = z*(Zsi + z*tanh)/(z + Zsi*tanh)
         Zs.append(Zsi)
-        mur_list.append(mur)
-        er_list.append(er)
+        
+        if return_field:
+            m = 1 if B_field else 0
+            Gamma_i_right = []
+            Gamma_i_left  = []
+
+            # do right side impedance
+            Zsi = Z[0]
+            for g, z, dl in zip(gamma, Z, delta_L):
+                tanh = np.tanh(g*dl)
+                Zsi = z*(Zsi + z*tanh)/(z + Zsi*tanh)
+                Gamma_i = (-1)**m*(Zsi - z)/(Zsi + z)
+                Gamma_i_right.append(Gamma_i)
+            Gamma_i_right = np.array(Gamma_i_right)[::-1]
+
+            # do left side impedance
+            Z = Z[::-1]
+            gamma = gamma[::-1]
+            Zsi = Z[0]
+            for g, z, dl in zip(gamma, Z, delta_L):
+                tanh = np.tanh(g*dl)
+                Zsi = z*(Zsi + z*tanh)/(z + Zsi*tanh)
+                Gamma_i = (-1)**m*(Zsi - z)/(Zsi + z)
+                Gamma_i_left.append(Gamma_i)
+            Gamma_i_left = np.array(Gamma_i_left)
+
+            # compute the fields
+            z0 = Z[0]
+            g0 = gamma[0]
+            G0_left = Gamma_i_left[0]
+            Ai = []
+            for inx, (g, z, dl, G_right, G_left) in enumerate(zip(gamma, Z, delta_L, Gamma_i_right, Gamma_i_left)):
+                ri = (-1)**m*(z - z0)/(z + z0)
+                
+                # compute taui
+                taui = 1 + ri if inx == 0 else taui*(1+ri)*np.exp(-g0*dl)/(1 - G0_left*ri*np.exp(-2*g0*dl))
+
+                # compute Ri
+                Ri = (1 + G_right*np.exp(-2*g*dl))/(1 - G_right*G_left*np.exp(-2*g0*dl))
+                
+                Ai.append(taui*Ri)
+                z0 = z
+                g0 = g
+                G0_left = G_left
+            Ai = np.array(Ai)
+            A.append(Ai/abs(Ai).max())  # save for each frequency
+
         print(f'Frequency solved: {f[idx] * 1e-9:.5f} GHz')
-    
+
     if return_material_profile:
         return np.array(Zs), np.array(mur_list), np.array(er_list), recursion_eval
+    elif return_field:
+        return np.array(Zs), np.array(A), recursion_eval
+    elif return_material_profile and return_field:
+        return np.array(Zs), np.array(mur_list), np.array(er_list), np.array(A), recursion_eval
     else:
         return np.array(Zs)
     
