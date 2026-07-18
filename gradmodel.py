@@ -1,10 +1,11 @@
 """
-@Author: Ziad (https://github.com/ZiadHatab)
+@author: Ziad Hatab (zi.hatab@gmail.com)
 
 This is the original Gradient model based on the paper [1] to compute the surface impedance 
 of a rough interface between a conductor and another material (usually a dielectric). 
 
-I wrote this script just as a reference. It is not stable, and I would not recommend using it. Use the transmission line method instead.
+I wrote this script just as a reference. It is not stable, and I would not recommend using it. 
+Use the transmission line method instead.
 NOTE:
  - The ODE solver can be unstable, especially for low roughness values. It is also very slow.
  - Imaginary part of the surface impedance for small roughness values is unreliable... use transmission method instead.
@@ -17,23 +18,33 @@ Oct. 2017, doi: https://doi.org/10.1109/TMTT.2017.2695192.
 
 import numpy as np
 import scipy
-import matplotlib.pyplot as plt
 
 def get_CDF_PDF(x, Rrms, boundary_loc, distribution='norm'):
-    """
-    Returns the CDF and PDF of the selected probability distribution.
+    """CDF and PDF of the selected roughness distribution.
 
-    Args:
-        x (float or array): Distance.
-        Rrms (float): RMS roughness (standard deviation).
-        boundary_loc (float): Boundary location (mean value).
-        distribution (str): Probability distribution of the roughness ('norm', 'rayleigh', 'uniform', etc.).
+    Parameters
+    ----------
+    x : float or array_like
+        Distance values at which to evaluate the CDF and PDF.
+    Rrms : float
+        RMS roughness (standard deviation of the distribution).
+    boundary_loc : float
+        Boundary location (mean value of the distribution).
+    distribution : str, optional
+        Probability distribution of the roughness: ``'norm'`` (default),
+        ``'rayleigh'``, or ``'uniform'``.
 
-    Returns:
-        tuple: CDF and PDF of the specified distribution.
-    
-    Raises:
-        ValueError: If an unknown distribution is specified.
+    Returns
+    -------
+    CDF : ndarray
+        CDF of the specified distribution evaluated at ``x``.
+    PDF : ndarray
+        PDF of the specified distribution evaluated at ``x``.
+
+    Raises
+    ------
+    ValueError
+        If an unknown distribution is specified.
     """
     Rrms = 1e-14 if np.isclose(Rrms, 0, atol=1e-14) else Rrms  # prevent division by zero in the CDFs and PDFs
     
@@ -64,18 +75,28 @@ def get_CDF_PDF(x, Rrms, boundary_loc, distribution='norm'):
     return CDF, PDF
 
 def conductivity(x, sigma1=0, sigma2=58e6, Rrms=1e-6, distribution='norm'):
-    """
-    Computes the conductivity profile as a function of distance from a given CDF and PDF.
+    """Conductivity profile as a function of distance from the roughness CDF and PDF.
 
-    Args:
-        x (float or array): Distance.
-        sigma1 (float): Conductivity of the first medium (default is 0 S/m).
-        sigma2 (float): Conductivity of the second medium (default is 58e6 S/m).
-        Rrms (float): RMS roughness (standard deviation).
-        distribution (str): Probability distribution of the roughness ('norm', 'rayleigh', 'uniform', etc.).
+    Parameters
+    ----------
+    x : float or array_like
+        Distance values at which to evaluate the profile.
+    sigma1 : float, optional
+        Conductivity of the first medium in S/m. Default is 0.
+    sigma2 : float, optional
+        Conductivity of the second medium in S/m. Default is 58e6.
+    Rrms : float, optional
+        RMS roughness (standard deviation). Default is 1e-6.
+    distribution : str, optional
+        Probability distribution of the roughness (``'norm'``, ``'rayleigh'``,
+        ``'uniform'``). Default is ``'norm'``.
 
-    Returns:
-        tuple: Conductivity and its differential as functions of distance.
+    Returns
+    -------
+    sigma : ndarray
+        Conductivity as a function of distance.
+    sigma_diff : ndarray
+        Derivative of the conductivity with respect to distance.
     """
     CDF, PDF = get_CDF_PDF(x, Rrms, 0, distribution)
     sigma = (sigma2 - sigma1)*CDF + sigma1
@@ -83,17 +104,25 @@ def conductivity(x, sigma1=0, sigma2=58e6, Rrms=1e-6, distribution='norm'):
     return sigma, sigma_diff
 
 def diff_eq(x, B, *args):
-    """
-    Differential equation describing B-fields in a conductor based on the gradient model [1]. 
-    This function is solved by scipy.integrate.solve_ivp().
+    """Differential equation of the B-field in a conductor based on the gradient model [1].
 
-    Args:
-        x (float): Current position in the integration.
-        B (array): Array of B-field values.
-        *args: Additional arguments passed to the function (frequency, conductivities, RMS roughness, distribution).
+    This function is the right-hand side passed to ``scipy.integrate.solve_ivp()``.
 
-    Returns:
-        list: Differential values for B-field.
+    Parameters
+    ----------
+    x : float
+        Current position in the integration.
+    B : (2,) array_like
+        Current state ``[B, dB/dx]``.
+    *args
+        Additional arguments in the order: frequency in Hz, conductivity of the
+        first medium, conductivity of the second medium, RMS roughness, and
+        probability distribution of the roughness.
+
+    Returns
+    -------
+    list of two floats
+        The derivatives ``[dB/dx, d^2B/dx^2]``.
     """
     f      = args[0]   # Frequency in Hz
     sigma1 = args[1]   # Conductivity of the first medium (S/m)
@@ -103,7 +132,7 @@ def diff_eq(x, B, *args):
     
     sigma, sigma_diff = conductivity(x, sigma1, sigma2, Rrms, distribution)
     
-    mu0 = 4*np.pi*1e-7
+    mu0 = 1.25663706127e-6  # Permeability (CODATA 2022)
     omega = 2*np.pi*f
     k = 1j*omega*mu0
 
@@ -113,24 +142,44 @@ def diff_eq(x, B, *args):
     return [B_diff, B_diff_diff]
 
 def surface_impedance(f, sigma1=0, sigma2=58e6, Rrms=1e-6, integration_span=None, N=128, distribution='norm'):
-    """
-    Solves for the surface impedance and magnetic fields (normalized) of an interface between 
-    a rough conductor and another material using the gradient model [1].
+    """Surface impedance of a rough interface using the gradient model [1].
 
-    Args:
-        f (float or array): Frequency in Hz.
-        sigma1 (float or array): Conductivity of the first medium (default is 0 S/m).
-        sigma2 (float or array): Conductivity of the second medium (default is 58e6 S/m).
-        Rrms (float): RMS roughness (standard deviation).
-        integration_span (list of two floats): Range of integration (default is [-5*Rrms, 10*Rrms]).
-        N (int): Number of points for integration (default is 128).
-        distribution (str): Probability distribution of roughness ('norm', 'rayleigh', 'uniform', etc.).
+    Solves the gradient-model ODE for the (normalized) magnetic field at each
+    frequency and derives the surface impedance from it. For very small
+    roughness (``Rrms < 0.1 nm``) the ODE solver is skipped and the smooth
+    (skin-effect) model is used instead.
 
-    Returns:
-        tuple: Surface impedance (1D array matching frequency) and magnetic field (2D array: freq_length x N).
+    Parameters
+    ----------
+    f : float or array_like
+        Frequency in Hz.
+    sigma1 : float or array_like, optional
+        Conductivity of the first medium in S/m. Can be frequency-dependent.
+        Default is 0.
+    sigma2 : float or array_like, optional
+        Conductivity of the second medium in S/m. Can be frequency-dependent.
+        Default is 58e6.
+    Rrms : float, optional
+        RMS roughness (standard deviation). Default is 1e-6.
+    integration_span : list of two floats, optional
+        Distance range of the integration. Default is ``[-5*Rrms, 10*Rrms]``.
+    N : int, optional
+        Number of integration points (Gauss-Legendre nodes). Default is 128.
+    distribution : str, optional
+        Probability distribution of the roughness (``'norm'``, ``'rayleigh'``,
+        ``'uniform'``). Default is ``'norm'``.
+
+    Returns
+    -------
+    Zs : (len(f),) ndarray
+        Surface impedance as a function of frequency.
+    B : (len(f), N) ndarray
+        Normalized magnetic field per frequency.
+    x : (N,) ndarray
+        Distance values at which the field is evaluated.
     """
-    mu0 = 4*np.pi*1e-7         # Permeability
-    ep0 = 8.854187818814e-12   # Permittivity
+    mu0 = 1.25663706127e-6  # Permeability (CODATA 2022)
+    ep0 = 8.8541878188e-12  # Permittivity (CODATA 2022)
 
     def gamma(f, sigma):
         # calculates the propagation constant in a conductor with conductivity sigma.

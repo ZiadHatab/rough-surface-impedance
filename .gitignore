@@ -1,2 +1,14 @@
 _not_used/*
 __pycache__/*
+
+# AI assistant junk
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+.cursor/
+.cursorrules
+.aider*
+.codex/
+GEMINI.md
+.github/copilot-instructions.md
